@@ -69,7 +69,7 @@ class VGG(nn.Module):
 
 
 def train(trainloader, net, criterion, optimizer, device):
-    for epoch in range(10):  # loop over the dataset multiple times
+    for epoch in range(5):  # loop over the dataset multiple times
         start = time.time()
         running_loss = 0.0
         histogram = np.zeros(np.shape(trainloader.dataset.dataset.classes))
@@ -124,6 +124,24 @@ def test(testloader, net, device):
     return matrix.numpy()
 
 
+def trainset_select(dataset, distribution=None):
+    labels = dataset.targets
+    if distribution is None:
+        return range(np.shape(labels)[0])
+    elif isinstance(distribution, range):
+        return distribution
+    elif isinstance(distribution, int):
+        distribution *= np.ones(np.shape(np.unique(labels)))
+    assert(np.shape(distribution)==np.shape(np.unique(labels)))
+    assert(np.all(distribution<=
+        np.histogram(labels, bins=np.shape(distribution)[0])[0]))
+    subset=[]
+    for i in range(np.shape(labels)[0]):
+        if(distribution[labels[i]]>0):
+            subset.append(i)
+            distribution[labels[i]]-=1
+    return subset
+
 
 def main(mode):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -132,12 +150,6 @@ def main(mode):
         [transforms.ToTensor(),
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                download=True, transform=transform)
-    trainset = torch.utils.data.Subset(trainset, range(10000))
-
-    trainloader = torch.utils.data.DataLoader(trainset,
-                    batch_size=100, shuffle=True)
 
     testset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                        download=True, transform=transform)
@@ -146,6 +158,17 @@ def main(mode):
 
 
     if mode=='retrain':
+        trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
+                download=True, transform=transform)
+
+        trainset = torch.utils.data.Subset(trainset,
+            trainset_select(trainset, distribution=
+            np.array([100, 100, 100, 100, 100, 100, 100, 100, 100, 100])))
+
+
+        trainloader = torch.utils.data.DataLoader(trainset,
+                    batch_size=100, shuffle=True)
+
         net = VGG().to(device)
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(net.parameters(), lr=0.001)
@@ -156,7 +179,7 @@ def main(mode):
         print('load')
 
 
-    plt.imsave('vgg.pdf',test(testloader, net, device))
+    plt.imsave('vgg.pdf', test(testloader, net, device))
 
 
 if __name__== "__main__":
