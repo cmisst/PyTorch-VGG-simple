@@ -69,10 +69,12 @@ class VGG(nn.Module):
 
 
 def train(trainloader, net, criterion, optimizer, device):
-    for epoch in range(1000):  # loop over the dataset multiple times
+    for epoch in range(10):  # loop over the dataset multiple times
         start = time.time()
         running_loss = 0.0
         for i, (images, labels) in enumerate(trainloader):
+            print(np.shape(images.numpy()))
+            print(np.histogram(labels.numpy()))
             images = images.to(device)
             labels = labels.to(device)
             # TODO: zero the parameter gradients
@@ -99,7 +101,7 @@ def train(trainloader, net, criterion, optimizer, device):
 def test(testloader, net, device):
     correct = 0
     total = 0
-    class_count = len(testloader.dataset.class_to_idx)
+    class_count = np.shape(np.unique(testloader.dataset.test_labels))[0]
     matrix = torch.zeros((class_count, class_count))
     with torch.no_grad():
         for data in testloader:
@@ -125,10 +127,12 @@ def main(mode):
         [transforms.ToTensor(),
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                        download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=100,
-                                          shuffle=True)
+    trainset = torch.utils.data.Subset(
+        torchvision.datasets.CIFAR10(root='./data', train=True,
+                download=True, transform=transform), range(10000))
+
+    trainloader = torch.utils.data.DataLoader(trainset,  
+                    batch_size=100, shuffle=True)
 
     testset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                        download=True, transform=transform)
