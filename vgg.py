@@ -72,9 +72,9 @@ def train(trainloader, net, criterion, optimizer, device):
     for epoch in range(10):  # loop over the dataset multiple times
         start = time.time()
         running_loss = 0.0
+        histogram = np.zeros(np.shape(trainloader.dataset.dataset.classes))
         for i, (images, labels) in enumerate(trainloader):
-            print(np.shape(images.numpy()))
-            print(np.histogram(labels.numpy()))
+            histogram += np.histogram(labels.numpy(), bins=np.shape(histogram)[0])[0]
             images = images.to(device)
             labels = labels.to(device)
             # TODO: zero the parameter gradients
@@ -94,14 +94,18 @@ def train(trainloader, net, criterion, optimizer, device):
                       (epoch + 1, i + 1, running_loss / 100, end-start))
                 start = time.time()
                 running_loss = 0.0
-
+        print(histogram)
     print('Finished Training')
 
 
 def test(testloader, net, device):
     correct = 0
     total = 0
-    class_count = np.shape(np.unique(testloader.dataset.test_labels))[0]
+    if device.type=='cuda':
+        class_count = len(testloader.dataset.class_to_idx)
+    else:
+        assert(device.type=='cpu')
+        class_count = np.shape(np.unique(testloader.dataset.test_labels))[0]
     matrix = torch.zeros((class_count, class_count))
     with torch.no_grad():
         for data in testloader:
@@ -116,6 +120,7 @@ def test(testloader, net, device):
                 matrix[labels[i],predicted[i]] += 1
     print('Accuracy of the network on the 10000 test images: %d %%' % (
         100 * correct / total))
+    print(matrix.numpy())
     return matrix.numpy()
 
 
@@ -127,11 +132,11 @@ def main(mode):
         [transforms.ToTensor(),
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-    trainset = torch.utils.data.Subset(
-        torchvision.datasets.CIFAR10(root='./data', train=True,
-                download=True, transform=transform), range(10000))
+    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
+                download=True, transform=transform)
+    trainset = torch.utils.data.Subset(trainset, range(10000))
 
-    trainloader = torch.utils.data.DataLoader(trainset,  
+    trainloader = torch.utils.data.DataLoader(trainset,
                     batch_size=100, shuffle=True)
 
     testset = torchvision.datasets.CIFAR10(root='./data', train=False,
