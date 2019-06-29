@@ -72,7 +72,11 @@ def train(trainloader, net, criterion, optimizer, device):
     for epoch in range(5):  # loop over the dataset multiple times
         start = time.time()
         running_loss = 0.0
-        histogram = np.zeros(np.shape(trainloader.dataset.dataset.classes))
+        if device.type=='cuda':
+            histogram = np.zeros(np.shape(trainloader.dataset.dataset.classes))
+        else:
+            assert(device.type=='cpu')
+            histogram = np.zeros(np.shape(np.unique(trainloader.dataset.dataset.train_labels)))
         for i, (images, labels) in enumerate(trainloader):
             histogram += np.histogram(labels.numpy(), bins=np.shape(histogram)[0])[0]
             images = images.to(device)
@@ -124,8 +128,19 @@ def test(testloader, net, device):
     return matrix.numpy()
 
 
-def trainset_select(dataset, distribution=None):
-    labels = dataset.targets
+def trainset_select(dataset, device, distribution=None):
+    ''' select subset of training set by given distribution
+        dafault:    all
+        int:        equally distributed
+        range:      same as input range
+        np.array:   counting each class
+    '''
+    if device.type=='cuda':
+        labels = dataset.targets
+    else:
+        assert(device.type=='cpu')
+        labels = dataset.train_labels
+    
     if distribution is None:
         return range(np.shape(labels)[0])
     elif isinstance(distribution, range):
@@ -162,8 +177,8 @@ def main(mode):
                 download=True, transform=transform)
 
         trainset = torch.utils.data.Subset(trainset,
-            trainset_select(trainset, distribution=
-            np.array([100, 100, 100, 100, 100, 100, 100, 100, 100, 100])))
+            trainset_select(trainset, device, distribution=
+            5000 * np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])))
 
 
         trainloader = torch.utils.data.DataLoader(trainset,
