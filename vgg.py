@@ -140,7 +140,7 @@ def trainset_select(dataset, device, distribution=None):
     else:
         assert(device.type=='cpu')
         labels = dataset.train_labels
-    
+
     if distribution is None:
         return range(np.shape(labels)[0])
     elif isinstance(distribution, range):
@@ -160,6 +160,9 @@ def trainset_select(dataset, device, distribution=None):
 
 def main(mode):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if device.type=='cuda':
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
     #device = torch.device('cpu')
     transform = transforms.Compose(
         [transforms.ToTensor(),
@@ -199,6 +202,7 @@ def main(mode):
 
 if __name__== "__main__":
     torch.nn.Module.dump_patches = True
+    torch.manual_seed(0)
     import sys
     if len(sys.argv)==1:
         main('load')
