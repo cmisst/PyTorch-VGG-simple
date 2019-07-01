@@ -68,8 +68,8 @@ class VGG(nn.Module):
         return x
 
 
-def train(trainloader, net, criterion, optimizer, device):
-    for epoch in range(5):  # loop over the dataset multiple times
+def train(trainloader, net, criterion, optimizer, device, epochs=5):
+    for epoch in range(epochs):  # loop over the dataset multiple times
         start = time.time()
         running_loss = 0.0
         if device.type=='cuda':
@@ -158,12 +158,14 @@ def trainset_select(dataset, device, distribution=None):
     return subset
 
 
-def main(mode):
+def main(argv):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    torch.nn.Module.dump_patches = True
+    torch.manual_seed(0)
     if device.type=='cuda':
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
-    #device = torch.device('cpu')
+    
     transform = transforms.Compose(
         [transforms.ToTensor(),
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -175,13 +177,21 @@ def main(mode):
                                          shuffle=False)
 
 
-    if mode=='retrain':
+    if len(argv)==1:
+        net = torch.load('vgg.pt')
+        print('load')
+        filename = 'vgg'
+    elif argv[1]=='retrain':
+        assert(isinstance(argv[2], str) and argv[2].isnumeric())
+        if(len(argv)==3):
+            argv.append('5')
+        print(argv[1], "subset=" + argv[2], "epoch=" + argv[3])
         trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
                 download=True, transform=transform)
 
         trainset = torch.utils.data.Subset(trainset,
             trainset_select(trainset, device, distribution=
-            5000 * np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])))
+            50 * int(argv[2]) * np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])))
 
 
         trainloader = torch.utils.data.DataLoader(trainset,
@@ -190,22 +200,20 @@ def main(mode):
         net = VGG().to(device)
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(net.parameters(), lr=0.001)
-        train(trainloader, net, criterion, optimizer, device)
+        train(trainloader, net, criterion, optimizer, device, epochs=int(argv[3]));
         torch.save(net, 'vgg.pt')
+        filename = 'vgg-epoch={}-subset={}'.format(argv[3],argv[2])
     else:
-        net = torch.load('vgg.pt')
-        print('load')
+        raise NameError('invalid mode')
+        
+    confusion_mtx = test(testloader, net, device)
+    plt.imsave(filename+'.pdf', confusion_mtx)
+    return confusion_mtx
 
-
-    plt.imsave('vgg.pdf', test(testloader, net, device))
+    
 
 
 if __name__== "__main__":
-    torch.nn.Module.dump_patches = True
-    torch.manual_seed(0)
     import sys
-    if len(sys.argv)==1:
-        main('load')
-    else:
-        print(sys.argv[1])
-        main(sys.argv[1])
+    assert(sys.argv[0]=='vgg.py')
+    main(sys.argv)
