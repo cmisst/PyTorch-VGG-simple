@@ -215,5 +215,5 @@ def main(argv):
 
 if __name__== "__main__":
     import sys
-    assert(sys.argv[0]=='vgg.py')
+    assert(sys.argv[0][-6:]=='vgg.py')
     main(sys.argv)
