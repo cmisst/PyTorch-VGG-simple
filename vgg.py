@@ -72,10 +72,9 @@ def train(trainloader, net, criterion, optimizer, device, epochs=5):
     for epoch in range(epochs):  # loop over the dataset multiple times
         start = time.time()
         running_loss = 0.0
-        if device.type=='cuda':
+        try:
             histogram = np.zeros(np.shape(trainloader.dataset.dataset.classes))
-        else:
-            assert(device.type=='cpu')
+        except AttributeError:
             histogram = np.zeros(np.shape(np.unique(trainloader.dataset.dataset.train_labels)))
         for i, (images, labels) in enumerate(trainloader):
             histogram += np.histogram(labels.numpy(), bins=np.shape(histogram)[0])[0]
@@ -105,10 +104,9 @@ def train(trainloader, net, criterion, optimizer, device, epochs=5):
 def test(testloader, net, device):
     correct = 0
     total = 0
-    if device.type=='cuda':
+    try:
         class_count = len(testloader.dataset.class_to_idx)
-    else:
-        assert(device.type=='cpu')
+    except AttributeError:
         class_count = np.shape(np.unique(testloader.dataset.test_labels))[0]
     matrix = torch.zeros((class_count, class_count))
     with torch.no_grad():
@@ -135,10 +133,9 @@ def trainset_select(dataset, device, distribution=None):
         range:      same as input range
         np.array:   counting each class
     '''
-    if device.type=='cuda':
+    try:
         labels = dataset.targets
-    else:
-        assert(device.type=='cpu')
+    except AttributeError:
         labels = dataset.train_labels
 
     if distribution is None:
@@ -160,6 +157,7 @@ def trainset_select(dataset, device, distribution=None):
 
 def main(argv):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(device.type)
     torch.nn.Module.dump_patches = True
     torch.manual_seed(0)
     if device.type=='cuda':
