@@ -19,9 +19,9 @@ class img_comp(object):
         else:
             # RGB image
             raise NotImplementedError
-            assert(np.shape(arg)[2] == 3)
+            # assert(np.shape(arg)[2] == 3)
         self.image = arg
-        return super(img_comp, self).__init__()
+        # return super(img_comp, self).__init__()
     
     def linear_dependent(self, rank):
         if isinstance(rank, int):
@@ -48,15 +48,15 @@ if __name__== "__main__":
     import torch
     import torchvision
     import matplotlib.pyplot as plt
-
+    
     trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True)
     for i in range(5):
-        plt.imshow(trainset.train_data[i,:,:,:])
+        plt.imshow(trainset.data[i,:,:,:])
         plt.show()
         test = np.dstack((
-            img_comp(trainset.train_data[i,:,:,0]).linear_dependent(10),
-            img_comp(trainset.train_data[i,:,:,1]).linear_dependent(10),
-            img_comp(trainset.train_data[i,:,:,2]).linear_dependent(10)))
+            img_comp(trainset.data[i,:,:,0]).linear_dependent(10),
+            img_comp(trainset.data[i,:,:,1]).linear_dependent(10),
+            img_comp(trainset.data[i,:,:,2]).linear_dependent(10)))
         plt.imshow(test)
         plt.show()
         
